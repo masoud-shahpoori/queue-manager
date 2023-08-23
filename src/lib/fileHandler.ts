@@ -1,23 +1,63 @@
 import axios, {
-  AxiosError,
+  AxiosError, AxiosPromise,
   AxiosRequestConfig,
   AxiosResponse,
   CancelTokenSource,
 } from "axios";
 import localforage from "localforage";
-import {
-  FILE_DOWNLOAD,
-  FILE_INIT_RESUME,
-  FILE_INIT_UPLOAD,
-  FILE_UPLOAD,
-} from "../constants/webservices";
+
 import { FileDownload } from "@web/ig-proto/proto/FileDownload_pb";
-import { File as ProtoFile, RoomMessage } from "@web/ig-proto/proto//Global_pb";
+import {File, File as ProtoFile, RoomMessage} from "@web/ig-proto/proto//Global_pb";
 // import store from "../store";
-import { SocketClient as Client } from "@web/ig-proto";
-import { restHandler } from "@utilities/rest";
-import { getGlobal } from "@global/index";
-import { generateRandomId } from "@utilities/passcode";
+import {SocketClient, SocketClient as Client} from "@web/ig-proto";
+// import { restHandler } from "@utilities/rest";
+// import { getGlobal } from "@global/index";
+export const FILE_BASEURL = `https://gate.igap.net/files/v1.0`;
+export const FILE_UPLOAD = `${FILE_BASEURL}/upload/{{token}}`;
+export const FILE_INIT_UPLOAD = `${FILE_BASEURL}/init`;
+export const FILE_INIT_RESUME = `${FILE_BASEURL}/init/{{token}}`;
+export const FILE_DOWNLOAD = `${FILE_BASEURL}/download/{{token}}?selector={{selector}}`;
+
+export const attachment : File.AsObject = {
+  token: '',
+  name: '',
+  size: 232424,
+  largeThumbnail:undefined,
+  smallThumbnail: undefined,
+  waveformThumbnail: undefined,
+  width: 190,
+  height: 102,
+  duration: 2,
+  cacheId: 'i34343',
+  mime: "image/jpeg",
+  publicUrl: '',
+}
+
+
+
+export const restHandler = (
+    request: any,
+    authorization = true,
+    aiAuthorization = false
+): AxiosPromise => {
+  return new Promise((resolve, reject) => {
+    if (authorization && SocketClient.token === undefined) {
+      setTimeout(
+          () => restHandler(request, authorization).then(resolve).catch(reject),
+          1000
+      );
+      return;
+    }
+    // request = setRestParams(request, authorization, aiAuthorization);
+    const handler = axios(request);
+    handler.then(resolve);
+    handler.catch((error: any) => {
+      reject(error);
+      // handleOnError(error);
+    });
+  });
+};
+
 
 export const downloadedFiles: { [key in string]: string } = {};
 export const idb = localforage.createInstance({ name: "cachedFiles" });
@@ -399,11 +439,11 @@ export class FileGet extends FileBase {
 
 export class FileSend extends FileBase {
   static instances: { [token in string]: FileSend } = {};
-  protected readonly file: File;
+  protected readonly file: File.AsObject;
   protected instanceId: string = "";
   private sendInChunks: boolean = true;
 
-  constructor(file: File, options: FileOptions = defaultOptions) {
+  constructor(file: File.AsObject, options: FileOptions = defaultOptions) {
     super(file.size, FileDownload.Selector.FILE, options);
     this.file = file;
     this.size = file.size;
@@ -416,7 +456,7 @@ export class FileSend extends FileBase {
 
   public clearInstance = () => delete FileSend.instances[this.instanceId];
 
-  public getRawFile = (): File => {
+  public getRawFile = (): File.AsObject => {
     return this.file;
   };
 
@@ -495,11 +535,11 @@ export class FileSend extends FileBase {
       .then((res) => {
         this.token = res?.data?.token || "";
         FileSend.instances[this.token] = this;
-        this.saveToCache(new Blob([this.file], { type: this.file.type })).then(
-          () => {
-            this.requestUpload();
-          }
-        );
+        // this.saveToCache(new Blob([this.file], { type: this.file.type })).then(
+        //   () => {
+        //     this.requestUpload();
+        //   }
+        // );
       })
       .catch((error: AxiosError) => this.handleError(error.response?.status));
   };
@@ -554,8 +594,9 @@ export class FileSend extends FileBase {
     }
     const chunked = (
       (this.file as any).mozSlice ||
-      (this.file as any).webkitSlice ||
-      this.file.slice
+      (this.file as any).webkitSlice
+      // ||
+      // this.file?.slice
     ).bind(this.file)(this.from, end);
     return new Promise((resolve) => {
       if (chunked.arrayBuffer !== undefined) {
@@ -583,9 +624,9 @@ export const clearAllFiles = (): void => {
 export const clearMessageFiles = (
   messageId: RoomMessage.AsObject["messageId"]
 ): void => {
-  const token = getGlobal().messages.byId[messageId]?.attachment?.token;
-  if (token !== undefined) {
-    idb.removeItem(`${token}`).then();
-    idb.removeItem(`${token}-${FileDownload.Selector.FILE}`).then();
-  }
+  // const token = getGlobal().messages.byId[messageId]?.attachment?.token;
+  // if (token !== undefined) {
+  //   idb.removeItem(`${token}`).then();
+  //   idb.removeItem(`${token}-${FileDownload.Selector.FILE}`).then();
+  // }
 };

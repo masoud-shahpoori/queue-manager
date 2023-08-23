@@ -1,4 +1,6 @@
+import {QueueFactory} from "../queue.factory";
 
 export abstract class QueueObserver<T>{
-    abstract update(item: { token: string, payload: T }): void;
+    abstract     update(queue: QueueFactory<T>): void;
+
 }

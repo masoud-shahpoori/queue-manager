@@ -1,10 +1,11 @@
 import {QueueObserver} from "../queue.observer";
 import {FileGet} from "../../../lib/fileHandler";
+import {QueueFactory} from "../../queue.factory";
 
-class ProgressObserver implements QueueObserver<FileGet> {
-    update(item: { token: string, payload: FileGet }) {
+export class DownloadObserver implements QueueObserver<FileGet> {
+    update() {
         // Handle updates based on the item being added or moved
         // For example, you can update UI components or trigger further actions\
-        alert('progress'+item.token)
+        // alert('download'+queue.to)
     }
 }

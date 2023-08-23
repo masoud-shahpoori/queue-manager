@@ -1,10 +1,16 @@
 import {QueueObserver} from "../queue.observer";
 import {FileGet} from "../../../lib/fileHandler";
+import {QueueFactory} from "../../queue.factory";
+import {DownloadQueueFacade} from "../../download.queue.facade";
 
-class PendingObserver implements QueueObserver<FileGet> {
-    update(item: { token: string, payload: FileGet }) {
-        // Handle updates based on the item being added or moved
-        // For example, you can update UI components or trigger further actions\
-        alert('pending'+item.token)
+export class ProgressObserver implements QueueObserver<FileGet> {
+    update(queue:QueueFactory<FileGet>) {
+        for(const item of queue.getList().reverse()){
+            console.log(item.payload)
+            item.payload.start()
+                item.payload.onFinish(()=>{
+                    DownloadQueueFacade.sendToDownload()
+                })
+        }
     }
 }

@@ -1,5 +1,5 @@
 import {QueueFactory} from "./queue.factory";
 
-export class QueueDownloadPending extends QueueFactory<string>{
+export class QueueProgress<T> extends QueueFactory<T>{
 
 }
